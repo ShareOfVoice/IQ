@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Influencer Directory</title>
+  <style>
+    body{font-family:sans-serif;max-width:800px;margin:auto;padding:1rem;}
+    input{width:100%;padding:.7rem;font-size:1rem;margin-bottom:1rem;}
+    li{margin:.3rem 0;}
+  </style>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.3/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lunr/lunr.js"></script>
+</head>
+<body>
+  <h1>Influencer Directory</h1>
+  <input id="q" placeholder="Type to search…" />
+
+  <ul id="results"></ul>
+
+<script>
+(async () => {
+  /* 1️⃣  Download the CSV from the absolute URL */
+  const csv = await fetch('https://shareofvoice.github.io/IQ/reports_with_categories_sorted.csv').then(r => r.text());
+
+  /* 2️⃣  Parse CSV → objects */
+  const data = Papa.parse(csv, {header:true, skipEmptyLines:true}).data;
+
+  /* 3️⃣  Build Lunr index */
+  const idx = lunr(function () {
+    this.ref('id');
+    this.field('username');
+    this.field('fullname');
+    this.field('category');
+    data.forEach(row => this.add(row), this);
+  });
+
+  /* 4️⃣  Hook up the search box */
+  const q = document.getElementById('q');
+  const ul = document.getElementById('results');
+  q.addEventListener('input', e => {
+    const hits = idx.search(e.target.value);
+    ul.innerHTML = hits.slice(0, 50)
+      .map(h => {
+        const d = data.find(x => x.id === h.ref);
+        return `<li>
+           <a href="${d.pdf_url}" target="_blank">${d.username}</a>
+           — ${d.category} (${Number(d.followers).toLocaleString()} followers)
+        </li>`;
+      })
+      .join('');
+  });
+})();
+</script>
+</body>
+</html>
